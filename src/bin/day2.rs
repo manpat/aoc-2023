@@ -5,7 +5,11 @@ fn main() {
 
 	let part1: u32 = input.lines()
 		.map(to_game)
-		.filter(part1_possible)
+		.filter(|Game{cubes, ..}| {
+			cubes.red <= 12
+			&& cubes.green <= 13
+			&& cubes.blue <= 14
+		})
 		.map(|game| game.id)
 		.sum();
 
@@ -14,7 +18,9 @@ fn main() {
 
 	let part2: u32 = input.lines()
 		.map(to_game)
-		.map(minimum_hand_power)
+		.map(|Game{cubes, ..}| {
+			cubes.red * cubes.green * cubes.blue
+		})
 		.sum();
 
 	dbg!(part2);
@@ -31,15 +37,22 @@ struct Hand {
 #[derive(Debug)]
 struct Game {
 	id: u32,
-	hands: Vec<Hand>,
+	cubes: Hand,
 }
 
 fn to_game(line: &str) -> Game {
-	let (id_str, hands_str) = line.split_once(':').unwrap();
+	let (id_str, cubes_str) = line.split_once(':').unwrap();
 
 	Game {
 		id: id_str.strip_prefix("Game ").unwrap().parse().unwrap(),
-		hands: hands_str.split(';').map(to_hand).collect(),
+		cubes: cubes_str.split(';')
+			.map(to_hand)
+			.reduce(|a, b| Hand {
+				red: a.red.max(b.red),
+				green: a.green.max(b.green),
+				blue: a.blue.max(b.blue),
+			})
+			.unwrap(),
 	}
 }
 
@@ -56,20 +69,4 @@ fn to_hand(s: &str) -> Hand {
 	}
 
 	hand
-}
-
-fn part1_possible(game: &Game) -> bool {
-	game.hands.iter()
-		.all(|hand| hand.red <= 12 && hand.green <= 13 && hand.blue <= 14)
-}
-
-fn minimum_hand_power(game: Game) -> u32 {
-	game.hands.into_iter()
-		.reduce(|a, b| Hand {
-			red: a.red.max(b.red),
-			green: a.green.max(b.green),
-			blue: a.blue.max(b.blue),
-		})
-		.map(|Hand{red, green, blue}| red * green * blue)
-		.unwrap()
 }
